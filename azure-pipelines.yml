@@ -1,19 +1,34 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
 trigger:
-- main
+  branches:
+    include:
+    - main
 
 pool:
-  vmImage: ubuntu-latest
+  vmImage: 'ubuntu-latest'
+
+variables:
+  - group: 'FW Variables'
 
 steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
-
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+- task: AzureCLI@2
+  inputs:
+    azureSubscription: '$(subscriptionId)'
+    scriptLocation: 'inlineScript'
+    scriptType: bash
+    inlineScript: |
+      az account set --subscription $(subscriptionId)
+      az group create --name $(resourceGroup) --location $(location)
+- task: AzureCLI@2
+  inputs:
+    azureSubscription: '$(subscriptionId)'
+    scriptLocation: 'inlineScript'
+    scriptType: bash
+    inlineScript: |
+      az deployment group create --resource-group $(resourceGroup) --template-file main.bicep --parameters vnetName=vnet-hub hubName=hub spokeName=spoke001 adminPassword=$(Password)
+- task: AzureCLI@2
+  inputs:
+    azureSubscription: '$(subscriptionId)'
+    scriptLocation: 'inlineScript'
+    scriptType: bash
+    inlineScript: |
+      az deployment group create --resource-group $(resourceGroup) --template-file deploy.bicep --parameters vnetName=$(vnetName) firewallName=$(firewallName)
